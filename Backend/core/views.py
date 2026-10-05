@@ -1,0 +1,309 @@
+from rest_framework.views import APIView
+from rest_framework.response import Response
+from rest_framework.permissions import IsAuthenticated
+import google.generativeai as genai
+import os
+from .models import Serie, Episodio, UsuarioEpisodios, MinhaLista, AvaliacaoEpisodio
+from .serializers import SerieSerializer, EpisodioSerializer, EpisodioPostSerializer
+from drf_yasg.utils import swagger_auto_schema
+from .auth import FirebaseAuthentication, IsFirebaseAdmin
+
+class CheckAdminView(APIView):
+    authentication_classes = [FirebaseAuthentication]
+    permission_classes = []
+
+    def get(self, request):
+        is_admin = getattr(request.auth, 'is_firebase_admin', False)
+        return Response({"isAdmin": is_admin})
+
+class HomeView(APIView):
+    authentication_classes = [FirebaseAuthentication]
+    permission_classes = []
+
+    def get(self, request):
+        return Response({"message": f"Bem-vindo ao AltStream API, {request.user.nome}!"})
+
+class ListarSeriesView(APIView):
+    authentication_classes = [FirebaseAuthentication]
+    permission_classes = []
+
+    def get(self, request):
+        series = Serie.objects.all()
+        serializer = SerieSerializer(series, many=True)
+        return Response(serializer.data)
+
+    def post(self, request):
+        if not IsFirebaseAdmin().has_permission(request, self):
+            return Response({'detail': 'You do not have permission to perform this action.'}, status=403)
+
+        serializer = SerieSerializer(data=request.data)
+        if serializer.is_valid():
+            serie = serializer.save()
+            return Response({"id": serie.id, "message": "Série criada com sucesso!"}, status=201)
+        return Response(serializer.errors, status=400)
+
+class DetalheSerieView(APIView):
+    authentication_classes = [FirebaseAuthentication]
+    permission_classes = []
+
+    def get(self, request, pk):
+        try:
+            serie = Serie.objects.get(pk=pk)
+            serializer = SerieSerializer(serie)
+            return Response(serializer.data)
+        except Serie.DoesNotExist:
+            return Response({'error': 'Série não encontrada'}, status=404)
+
+    @swagger_auto_schema(request_body=SerieSerializer)
+    def post(self, request, pk=None):
+        if not IsFirebaseAdmin().has_permission(request, self):
+            return Response({'detail': 'You do not have permission to perform this action.'}, status=403)
+            
+        try:
+            serie = Serie.objects.get(pk=pk)
+        except Serie.DoesNotExist:
+            return Response({'error': 'Série não encontrada'}, status=404)
+
+        serializer = SerieSerializer(serie, data=request.data, partial=True)
+        if serializer.is_valid():
+            serie = serializer.save()
+            return Response({"id": serie.id, "message": "Série atualizada com sucesso!"}, status=200)
+        return Response(serializer.errors, status=400)
+
+    def delete(self, request, pk):
+        if not IsFirebaseAdmin().has_permission(request, self):
+            return Response({'detail': 'You do not have permission to perform this action.'}, status=403)
+            
+        try:
+            serie = Serie.objects.get(pk=pk)
+            serie.delete()
+            return Response({"message": "Série deletada com sucesso!"}, status=204)
+        except Serie.DoesNotExist:
+            return Response({'error': 'Série não encontrada'}, status=404)
+
+class AIChatView(APIView):
+    authentication_classes = [FirebaseAuthentication]
+    permission_classes = []
+
+    def post(self, request):
+        try:
+            message = request.data.get('message')
+            history = request.data.get('history', [])
+
+            if not message:
+                return Response({'error': 'A mensagem é obrigatória.'}, status=400)
+
+            series_do_banco = Serie.objects.prefetch_related('episodios').all()
+            
+            catalogo_texto = "Catálogo de séries e episódios disponíveis no AltStream:\n"
+            for serie in series_do_banco:
+                generos_nomes = ", ".join([g.nome for g in serie.generos.all()])
+                catalogo_texto += f"- Série: {serie.nome} (Gêneros: {generos_nomes if generos_nomes else 'N/A'})\n"
+                episodios = serie.episodios.all()[:5]
+                for ep in episodios:
+                    catalogo_texto += f"  * Ep {ep.numero}: {ep.nome} (Temporada {getattr(ep, 'temporada_numero', 1)})\n"
+
+            genai.configure(api_key=os.getenv('GEMINI_API_KEY'))
+            
+            system_instruction = f"""
+            Você é o assistente virtual do AltStream. Seja amigável, conciso e ajude o usuário a encontrar séries, filmes e recomendações baseadas nos gostos dele. Não use asteristico.
+            
+            Use EXCLUSIVAMENTE as informações do catálogo abaixo para responder perguntas sobre quais séries estão disponíveis na plataforma:
+            {catalogo_texto}
+            
+            """
+
+            model = genai.GenerativeModel(
+                model_name='gemini-2.5-flash',
+                system_instruction=system_instruction
+            )
+            
+            chat = model.start_chat(history=[])
+            response = chat.send_message(message)
+            return Response({'reply': response.text})
+
+        except Exception as e:
+            print(f"Erro na API do Gemini: {str(e)}")
+            return Response({'error': 'Não foi possível gerar a resposta no momento.'}, status=500)
+
+class MinhaListaView(APIView):
+    authentication_classes = [FirebaseAuthentication]
+    permission_classes = []
+
+    def get(self, request):
+        usuario = request.user
+        if not usuario or usuario.__class__.__name__ == 'AnonymousUser':
+            return Response({'error': 'Autenticação necessária'}, status=401)
+            
+        itens_lista = MinhaLista.objects.filter(usuario=usuario).select_related('serie')
+        
+        data = []
+        for item in itens_lista:
+            data.append({
+                'id': item.id,
+                'serie_id': item.serie.id,
+                'serie_nome': item.serie.nome,
+                'serie_imagem': item.serie.link_imagem
+            })
+        return Response(data)
+
+    def post(self, request):
+        usuario = request.user
+        if not usuario or usuario.__class__.__name__ == 'AnonymousUser':
+            return Response({'error': 'Autenticação necessária'}, status=401)
+            
+        serie_id = request.data.get('serie_id')
+        
+        if not serie_id:
+            return Response({'error': 'serie_id é obrigatório'}, status=400)
+            
+        try:
+            serie = Serie.objects.get(pk=serie_id)
+            # Toggle logic: add if not exists, remove if exists
+            item, created = MinhaLista.objects.get_or_create(usuario=usuario, serie=serie)
+            
+            if not created:
+                item.delete()
+                return Response({'message': 'Série removida da lista', 'status': 'removed'})
+                
+            return Response({'message': 'Série adicionada à lista', 'status': 'added'})
+            
+        except Serie.DoesNotExist:
+            return Response({'error': 'Série não encontrada'}, status=404)
+
+
+            chat_history = [
+                {'role': 'model' if msg.get('role') == 'ai' else 'user', 'parts': [msg.get('content')]}
+                for msg in history
+            ]
+
+            chat = model.start_chat(history=chat_history)
+            response = chat.send_message(message)
+
+            return Response({'reply': response.text})
+
+        except Exception as e:
+            print(f"Erro na API do Gemini: {str(e)}")
+            return Response({'error': 'Não foi possível gerar a resposta no momento.'}, status=500)
+        
+class ListarEpisodiosView(APIView):
+    def get(self, request, serie_id):
+        episodios = Episodio.objects.filter(serie_id=serie_id)
+        serializer = EpisodioSerializer(episodios, many=True)
+        return Response(serializer.data)
+
+class DetalheEpisodioView(APIView):
+    authentication_classes = [FirebaseAuthentication]
+    permission_classes = []
+
+    def get(self, request, pk):
+        try:
+            episodio = Episodio.objects.get(pk=pk)
+            serializer = EpisodioSerializer(episodio)
+            return Response(serializer.data)
+        except Episodio.DoesNotExist:
+            return Response({'error': 'Episódio não encontrado'}, status=404)
+
+    @swagger_auto_schema(
+        operation_description="Cria um novo episódio para a série especificada na URL",
+        request_body=EpisodioPostSerializer
+    )
+    def post(self, request, pk=None, serie_id=None):
+        if not IsFirebaseAdmin().has_permission(request, self):
+            return Response({'detail': 'Apenas administradores podem criar episódios.'}, status=403)
+            
+        s_id = serie_id if serie_id is not None else pk
+        
+        data = request.data.copy()
+        serializer = EpisodioPostSerializer(data=data)
+        if serializer.is_valid():
+            episodio = serializer.save(serie_id=s_id)
+            return Response({"id": episodio.id, "message": "Episódio cadastrado com sucesso!"}, status=201)
+        return Response(serializer.errors, status=400)
+
+    def delete(self, request, pk):
+        if not IsFirebaseAdmin().has_permission(request, self):
+            return Response({'detail': 'Apenas administradores podem deletar episódios.'}, status=403)
+            
+        try:
+            episodio = Episodio.objects.get(pk=pk)
+            episodio.delete()
+            return Response({"message": "Episódio deletado com sucesso!"}, status=204)
+        except Episodio.DoesNotExist:
+            return Response({'error': 'Episódio não encontrado'}, status=404)
+
+class ListarContinuarView(APIView):
+    def get(self, request):
+        usuario_id = request.GET.get('usuario_id')
+        if not usuario_id:
+            return Response({'error': 'usuario_id is required'}, status=400)
+        
+        progresso = UsuarioEpisodios.objects.filter(usuario_id=usuario_id).select_related('episodio').values(
+            'episodio__id', 'episodio__nome', 'episodio__link_imagem', 'episodio__serie__nome', 'tempo'
+        )
+        return Response(list(progresso))
+
+class ListarNovosEpisodiosView(APIView):
+    def get(self, request):
+        episodios = Episodio.objects.all().order_by('-data').values('id', 'nome', 'link_imagem', 'link_midia', 'serie__nome', 'temporada_numero', 'numero', 'data')
+        return Response(list(episodios))
+
+class PesquisarSeriesView(APIView):
+    def get(self, request):
+        query = request.GET.get('q', '')
+        if not query:
+            return Response([])
+        
+        series = Serie.objects.filter(nome__icontains=query)
+        serializer = SerieSerializer(series, many=True)
+        return Response(serializer.data)
+
+
+class ToggleLikeView(APIView):
+    authentication_classes = [FirebaseAuthentication]
+    permission_classes = []
+
+    def post(self, request, pk):
+        usuario = request.user
+        if not usuario or usuario.__class__.__name__ == 'AnonymousUser':
+            return Response({'error': 'Autenticação necessária'}, status=401)
+
+        try:
+            episodio = Episodio.objects.get(pk=pk)
+            action_is_like = request.data.get('like', True)
+
+            avaliacao, created = AvaliacaoEpisodio.objects.get_or_create(
+                usuario=usuario, 
+                episodio=episodio,
+                defaults={'curtida': action_is_like}
+            )
+
+            if not created:
+                if avaliacao.curtida == action_is_like:
+                    if action_is_like:
+                        episodio.curtidas = max(0, episodio.curtidas - 1)
+                    else:
+                        episodio.descurtidas = max(0, episodio.descurtidas - 1)
+                    
+                    avaliacao.delete()
+                else:
+                    if action_is_like:
+                        episodio.descurtidas = max(0, episodio.descurtidas - 1)
+                        episodio.curtidas += 1
+                    else:
+                        episodio.curtidas = max(0, episodio.curtidas - 1)
+                        episodio.descurtidas += 1
+                    
+                    avaliacao.curtida = action_is_like
+                    avaliacao.save()
+            else:
+                if action_is_like:
+                    episodio.curtidas += 1
+                else:
+                    episodio.descurtidas += 1
+
+            episodio.save()
+            return Response({'curtidas': episodio.curtidas, 'descurtidas': episodio.descurtidas})
+
+        except Episodio.DoesNotExist:
+            return Response({'error': 'Episódio não encontrado'}, status=404)
