@@ -311,7 +311,7 @@ export default function AdminPage() {
             </form>
           </section>
         </div>
-
+   
         {/* SECTION: MANAGEMENT TABLE */}
         <section className="bg-surface-container p-6 rounded-2xl border border-outline-variant/20 shadow-xl overflow-x-auto">
           <h2 className="font-headline-md text-headline-md mb-6 flex items-center gap-2">
