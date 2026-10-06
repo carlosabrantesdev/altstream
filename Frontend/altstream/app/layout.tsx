@@ -1,19 +1,6 @@
 import type { Metadata } from "next";
-import { Inter, Montserrat } from "next/font/google";
 import "./globals.css";
 import AIPopUp from "./components/AIPopUp";
-
-const inter = Inter({
-  subsets: ["latin"],
-  weight: ["400", "600"],
-  variable: "--font-inter",
-});
-
-const montserrat = Montserrat({
-  subsets: ["latin"],
-  weight: ["600", "700", "800"],
-  variable: "--font-montserrat",
-});
 
 export const metadata: Metadata = {
   title: "AltStream",
@@ -26,7 +13,7 @@ export default function RootLayout({
   children: React.ReactNode;
 }) {
   return (
-    <html lang="pt-BR" className={`dark ${inter.variable} ${montserrat.variable}`}>
+    <html lang="pt-BR" className="dark">
       <head>
         <link 
           rel="stylesheet" 
