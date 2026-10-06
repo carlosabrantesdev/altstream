@@ -233,15 +233,39 @@ class DetalheEpisodioView(APIView):
             return Response({'error': 'Episódio não encontrado'}, status=404)
 
 class ListarContinuarView(APIView):
+    authentication_classes = [FirebaseAuthentication]
+    permission_classes = []
+
     def get(self, request):
-        usuario_id = request.GET.get('usuario_id')
-        if not usuario_id:
-            return Response({'error': 'usuario_id is required'}, status=400)
+        usuario = request.user
+        if not usuario or usuario.__class__.__name__ == 'AnonymousUser':
+            return Response({'error': 'Autenticação necessária'}, status=401)
         
-        progresso = UsuarioEpisodios.objects.filter(usuario_id=usuario_id).select_related('episodio').values(
+        progresso = UsuarioEpisodios.objects.filter(usuario=usuario).select_related('episodio').values(
             'episodio__id', 'episodio__nome', 'episodio__link_imagem', 'episodio__serie__nome', 'tempo'
         )
         return Response(list(progresso))
+
+    def post(self, request):
+        usuario = request.user
+        if not usuario or usuario.__class__.__name__ == 'AnonymousUser':
+            return Response({'error': 'Autenticação necessária'}, status=401)
+
+        episodio_id = request.data.get('episodio_id')
+        tempo = request.data.get('tempo')
+
+        if episodio_id is None or tempo is None:
+            return Response({'error': 'episodio_id e tempo são obrigatórios'}, status=400)
+
+        try:
+            progresso, created = UsuarioEpisodios.objects.update_or_create(
+                usuario=usuario,
+                episodio_id=episodio_id,
+                defaults={'tempo': tempo}
+            )
+            return Response({'message': 'Progresso salvo com sucesso!', 'tempo': progresso.tempo}, status=200)
+        except Exception as e:
+            return Response({'error': str(e)}, status=500)
 
 class ListarNovosEpisodiosView(APIView):
     def get(self, request):

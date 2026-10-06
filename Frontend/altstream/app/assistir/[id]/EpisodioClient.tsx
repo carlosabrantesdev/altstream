@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, useRef } from 'react';
 import Header from '@/app/components/Header';
 import Footer from '@/app/components/Footer';
 import VideoPlayer from '@/app/components/VideoPlayer';
@@ -23,6 +23,9 @@ export default function EpisodioPage() {
   const [user, setUser] = useState<any>(null);
   const [popupMessage, setPopupMessage] = useState<string | null>(null);
   const [popupType, setPopupType] = useState<'success' | 'error' | 'info'>('info');
+  const [savedTime, setSavedTime] = useState<number>(0);
+  const lastSavedTime = useRef(0);
+  const isSaving = useRef(false);
 
   useEffect(() => {
     const unsubscribe = auth.onAuthStateChanged((currentUser) => {
@@ -39,7 +42,7 @@ export default function EpisodioPage() {
           setEpisodio(data);
           setCurtidas(data.curtidas);
           setDescurtidas(data.descurtidas);
-          
+
           if (data.serie) {
             const todosEpisodios = await streamApi.getEpisodiosBySerie(data.serie.id);
             const currentIndex = todosEpisodios.findIndex((e: any) => e.id === Number(episodioId));
@@ -55,10 +58,62 @@ export default function EpisodioPage() {
     fetchEpisodio();
   }, [episodioId]);
 
+  useEffect(() => {
+    async function resumePlayback() {
+      if (!user || !episodioId) return;
+      try {
+        const token = await user.getIdToken();
+        const progressList = await streamApi.getContinueWatching(token);
+        const progress = progressList.find((p: any) => p.episodio__id === Number(episodioId));
+
+        if (progress && progress.tempo > 0) {
+          setSavedTime(progress.tempo);
+        }
+      } catch (error) {
+        console.error('Erro ao recuperar progresso do vídeo:', error);
+      }
+    }
+    resumePlayback();
+  }, [user, episodioId]);
+
+  const handleTimeUpdate = async (time: number) => {
+    if (!user) return;
+    if (!episodioId) return;
+
+    if (time - lastSavedTime.current < 10) {
+      return;
+    }
+
+    if (isSaving.current) {
+      return;
+    }
+
+    try {
+      isSaving.current = true;
+      const token = await user.getIdToken();
+      const tempo = Math.floor(time);
+
+      await streamApi.saveVideoProgress(
+        Number(episodioId),
+        tempo,
+        token
+      );
+
+      lastSavedTime.current = time;
+
+    } finally {
+      isSaving.current = false;
+    }
+  };
+
   const videoPlayerMemo = useMemo(() => {
     if (!episodio?.link_midia) return null;
-    return <VideoPlayer videoSrc={episodio.link_midia} />;
-  }, [episodio?.link_midia]);
+    return <VideoPlayer
+      videoSrc={episodio.link_midia}
+      onTimeUpdate={handleTimeUpdate}
+      initialTime={savedTime}
+    />;
+  }, [episodio?.link_midia, user, savedTime]);
 
   if (!episodio) {
     return (
@@ -96,30 +151,35 @@ export default function EpisodioPage() {
     try {
       const token = await user.getIdToken();
       const response = await streamApi.toggleLike(Number(episodioId), isLike, token);
-      
+
       setCurtidas(response.curtidas);
       setDescurtidas(response.descurtidas);
     } catch (error) {
-        setPopupMessage('Ocorreu um erro ao processar sua avalia��o.');
-        setPopupType('error');
+      setPopupMessage('Ocorreu um erro ao processar sua avalia��o.');
+      setPopupType('error');
     }
   };
 
   return (
     <div className="bg-background text-on-background font-body-md text-body-md min-h-screen overflow-x-hidden selection:bg-primary-container selection:text-on-primary-container">
       <Header />
-        <PopUp 
-          message={popupMessage} 
-          type={popupType} 
-          onClose={() => setPopupMessage(null)} 
-        />
-      
+      <PopUp
+        message={popupMessage}
+        type={popupType}
+        onClose={() => setPopupMessage(null)}
+      />
+
       <main className="min-h-screen w-full relative pt-[100px] px-container-margin-mobile md:px-container-margin pb-stack-lg">
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
           <div className="lg:col-span-2 flex flex-col gap-6">
             <div className="w-full rounded-xl overflow-hidden shadow-2xl border border-outline-variant/20 bg-surface-container-high">
-              {/* Chamamos a versão em cache do player em vez de renderizar direto */}
-              {videoPlayerMemo}
+              {episodio?.link_midia && (
+                <VideoPlayer
+                  videoSrc={episodio.link_midia}
+                  onTimeUpdate={handleTimeUpdate}
+                  initialTime={savedTime}
+                />
+              )}
             </div>
 
             <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-4">
@@ -132,17 +192,17 @@ export default function EpisodioPage() {
                 </p>
                 <div className="flex items-center gap-3">
                   <div className="w-12 h-12 rounded-lg overflow-hidden border border-outline-variant/30">
-                    <img 
-                      src={episodio.serie?.link_imagem || 'https://assets.startbootstrap.com/img/screenshots/templates/the-big-picture.png'} 
-                      alt="Capa da Série" 
+                    <img
+                      src={episodio.serie?.link_imagem || 'https://assets.startbootstrap.com/img/screenshots/templates/the-big-picture.png'}
+                      alt="Capa da Série"
                       className="w-full h-full object-cover"
                     />
                   </div>
                   <div className="flex flex-col">
                     <span className="font-label-sm text-label-sm text-primary uppercase tracking-wider">Série</span>
                     <span className="font-body-md text-body-md text-on-surface-variant font-medium">
-                      <Link 
-                        href={`/series/${episodio.serie?.id}`} 
+                      <Link
+                        href={`/series/${episodio.serie?.id}`}
                         className="text-on-background hover:underline font-label-sm text-label-sm"
                       >
                         {episodio.serie?.nome || 'Série Desconhecida'}
@@ -154,14 +214,14 @@ export default function EpisodioPage() {
 
               <div className="flex flex-col gap-4">
                 <div className="flex items-center gap-2">
-                  <button 
+                  <button
                     onClick={() => handleLike(true)}
                     className="flex items-center gap-2 px-4 py-2 rounded-full bg-surface-container border border-outline-variant/30 hover:border-primary/50 hover:bg-surface-variant/50 transition-all text-on-surface-variant hover:text-primary"
                   >
                     <span className="material-symbols-outlined" style={{ fontVariationSettings: "'FILL' 0" }}>thumb_up</span>
                     <span className="font-label-sm text-label-sm">{curtidas}</span>
                   </button>
-                  <button 
+                  <button
                     onClick={() => handleLike(false)}
                     className="flex items-center gap-2 px-4 py-2 rounded-full bg-surface-container border border-outline-variant/30 hover:border-error/50 hover:bg-surface-variant/50 transition-all text-on-surface-variant hover:text-error"
                   >
@@ -172,7 +232,7 @@ export default function EpisodioPage() {
                     <span className="material-symbols-outlined">share</span>
                   </button>
                   {recomendados.length > 0 && (
-                    <Link 
+                    <Link
                       href={`/assistir/${recomendados[0].id}`}
                       className="flex items-center justify-center gap-2 px-6 py-2 rounded-full bg-primary text-on-primary font-label-sm text-label-sm transition-all] w-full sm:w-max ml-2"
                     >
@@ -203,9 +263,9 @@ export default function EpisodioPage() {
             <div className="flex flex-col gap-4">
               {recomendados.length > 0 ? (
                 recomendados.map((ep: any) => (
-                  <Link 
-                    key={ep.id} 
-                    href={`/assistir/${ep.id}`} 
+                  <Link
+                    key={ep.id}
+                    href={`/assistir/${ep.id}`}
                     className="flex items-center gap-4 p-3 rounded-xl bg-surface-container border border-outline-variant/20 hover:border-primary/50 hover:bg-surface-variant/50 transition-all group cursor-pointer"
                   >
                     <div className="w-24 aspect-video rounded-lg overflow-hidden border border-outline-variant/30">

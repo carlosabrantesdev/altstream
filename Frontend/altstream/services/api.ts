@@ -45,8 +45,21 @@ export const streamApi = {
     return response.data;
   },
 
-  async getContinueWatching(usuarioId: number) {
-    const response = await api.get(`/core/continuar/?usuario_id=${usuarioId}`);
+  async saveVideoProgress(episodioId: number, tempo: number, token: string) {
+    const response = await api.post('/core/continuar/', { episodio_id: episodioId, tempo }, {
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
+    });
+    return response.data;
+  },
+
+  async getContinueWatching(token: string) {
+    const response = await api.get('/core/continuar/', {
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
+    });
     return response.data;
   },
 
