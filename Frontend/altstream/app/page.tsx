@@ -6,8 +6,10 @@ import Footer from './components/Footer';
 import { streamApi } from '@/services/api';
 import Link from 'next/link';
 import { auth } from '@/services/firebase';
+import { useRouter } from "next/navigation";
 
 export default function Home() {
+  const router = useRouter();
   const [continuar, setContinuar] = useState<any[]>([]);
   const [novos, setNovos] = useState<any[]>([]);
   const [seriesDestaque, setSeriesDestaque] = useState<any[]>([]);
@@ -20,8 +22,11 @@ export default function Home() {
   const handleToggleList = async (serieId: number) => {
     try {
       const user = auth.currentUser;
-      if (!user) return;
-
+      if (!user) {
+        router.push('/login');
+        return;
+      }
+  
       const token = await user.getIdToken();
       await streamApi.toggleMinhaLista(serieId, token);
       
@@ -267,7 +272,7 @@ export default function Home() {
             <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6 mt-4">
               {series.length > 0 ? (
                 series.map((serie: any) => (
-                  <Link key={serie.id} href={`/series/${serie.id}`} className="relative group cursor-pointer rounded-2xl overflow-hidden border border-outline-variant/20 bg-surface-container-high transition-all duration-500 hover:scale-[1.02] hover:shadow-2xl hover:border-primary/50 aspect-[16/10]">
+                  <Link key={serie.id} href={`/series/${serie.id}`} className="relative group cursor-pointer w-40 md:w-48 rounded-2xl overflow-hidden border border-outline-variant/20 bg-surface-container-high transition-all duration-500 hover:scale-[1.02] hover:shadow-2xl hover:border-primary/50 aspect-[2/3]">
                     <div className="absolute inset-0 overflow-hidden rounded-2xl">
                       <img alt={serie.nome} className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110" src={serie.link_imagem || 'https://wallpaperaccess.com/full/3215377.jpg'} />
                     </div>
@@ -291,7 +296,7 @@ export default function Home() {
                         {serie.nome}
                       </h4>
                       
-                      <p className="font-body-md text-body-sm text-on-surface-variant line-clamp-2 transition-all duration-300">
+                      <p className="font-body-md text-[10px] text-on-surface-variant line-clamp-2 transition-all duration-300">
                         {serie.sinopse || 'Clique para saber mais sobre esta série.'}
                       </p>
                     </div>

@@ -9,8 +9,10 @@ import { streamApi } from '@/services/api';
 import { useParams, useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { auth } from '@/services/firebase';
+import PopUp from '@/app/components/PopUp';
 
 export default function EpisodioPage() {
+  const router = useRouter();
   const params = useParams();
   const episodioId = params.id;
 
@@ -20,6 +22,8 @@ export default function EpisodioPage() {
   const [recomendados, setRecomendados] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [user, setUser] = useState<any>(null);
+  const [popupMessage, setPopupMessage] = useState<string | null>(null);
+  const [popupType, setPopupType] = useState<'success' | 'error' | 'info'>('info');
 
   useEffect(() => {
     const unsubscribe = auth.onAuthStateChanged((currentUser) => {
@@ -46,7 +50,8 @@ export default function EpisodioPage() {
           }
         }
       } catch (error) {
-        console.error('Error fetching episode:', error);
+        setPopupMessage('Erro ao carregar o episódio. Tente novamente mais tarde.');
+        setPopupType('error');
       } finally {
         setLoading(false);
       }
@@ -54,8 +59,6 @@ export default function EpisodioPage() {
     fetchEpisodio();
   }, [episodioId]);
 
-  // A MÁGICA ACONTECE AQUI: Memorizamos o player de vídeo.
-  // Ele só será recarregado se o "episodio.link_midia" mudar.
   const videoPlayerMemo = useMemo(() => {
     if (!episodio?.link_midia) return null;
     return <VideoPlayer videoSrc={episodio.link_midia} />;
@@ -84,9 +87,21 @@ export default function EpisodioPage() {
     title: `${episodio.serie?.nome || 'Série'} - ${episodio.nome}`,
   };
 
+  const handleShare = async () => {
+    try {
+      const url = window.location.href;
+      await navigator.clipboard.writeText(url);
+      setPopupMessage('Link copiado para a área de transferência!');
+      setPopupType('success');
+    } catch (error) {
+      setPopupMessage('Não foi possível copiar o link.');
+      setPopupType('error');
+    }
+  };
+
   const handleLike = async (isLike: boolean) => {
     if (!user) {
-      alert('Você precisa estar logado para avaliar este episódio!');
+      router.push('/login');
       return;
     }
 
@@ -97,14 +112,19 @@ export default function EpisodioPage() {
       setCurtidas(response.curtidas);
       setDescurtidas(response.descurtidas);
     } catch (error) {
-      console.error('Erro ao avaliar episódio:', error);
-      alert('Ocorreu um erro ao processar sua avaliação.');
+        setPopupMessage('Ocorreu um erro ao processar sua avalia��o.');
+        setPopupType('error');
     }
   };
 
   return (
     <div className="bg-background text-on-background font-body-md text-body-md min-h-screen overflow-x-hidden selection:bg-primary-container selection:text-on-primary-container">
       <Header />
+        <PopUp 
+          message={popupMessage} 
+          type={popupType} 
+          onClose={() => setPopupMessage(null)} 
+        />
       
       <main className="min-h-screen w-full relative pt-[100px] px-container-margin-mobile md:px-container-margin pb-stack-lg">
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
@@ -155,7 +175,7 @@ export default function EpisodioPage() {
                     <span className="material-symbols-outlined" style={{ fontVariationSettings: "'FILL' 0" }}>thumb_down</span>
                     <span className="font-label-sm text-label-sm">{descurtidas}</span>
                   </button>
-                  <button className="flex items-center gap-2 p-2 rounded-full bg-surface-container border border-outline-variant/30 hover:border-primary/50 hover:bg-surface-variant/50 transition-all text-on-surface-variant hover:text-primary ml-2">
+                  <button onClick={handleShare} className="flex items-center gap-2 p-2 rounded-full bg-surface-container border border-outline-variant/30 hover:border-primary/50 hover:bg-surface-variant/50 transition-all text-on-surface-variant hover:text-primary ml-2">
                     <span className="material-symbols-outlined">share</span>
                   </button>
                 </div>
