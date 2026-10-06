@@ -20,7 +20,6 @@ export default function EpisodioPage() {
   const [curtidas, setCurtidas] = useState<number>(0);
   const [descurtidas, setDescurtidas] = useState<number>(0);
   const [recomendados, setRecomendados] = useState<any[]>([]);
-  const [loading, setLoading] = useState(true);
   const [user, setUser] = useState<any>(null);
   const [popupMessage, setPopupMessage] = useState<string | null>(null);
   const [popupType, setPopupType] = useState<'success' | 'error' | 'info'>('info');
@@ -51,8 +50,6 @@ export default function EpisodioPage() {
       } catch (error) {
         setPopupMessage('Erro ao carregar o episódio. Tente novamente mais tarde.');
         setPopupType('error');
-      } finally {
-        setLoading(false);
       }
     }
     fetchEpisodio();
@@ -62,14 +59,6 @@ export default function EpisodioPage() {
     if (!episodio?.link_midia) return null;
     return <VideoPlayer videoSrc={episodio.link_midia} />;
   }, [episodio?.link_midia]);
-
-  if (loading) {
-    return (
-      <div className="bg-background text-on-background min-h-screen flex items-center justify-center">
-        <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-primary"></div>
-      </div>
-    );
-  }
 
   if (!episodio) {
     return (
@@ -192,7 +181,6 @@ export default function EpisodioPage() {
                   )}
                 </div>
                 <div className="flex justify-end">
-                  {/* Botão de próximo episódio movido para a linha de cima */}
                 </div>
               </div>
             </div>

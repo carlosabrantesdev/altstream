@@ -16,7 +16,6 @@ export default function SeriePage() {
 
   const [serie, setSerie] = useState<any>(null);
   const [episodios, setEpisodios] = useState<any[]>([]);
-  const [loading, setLoading] = useState(true);
   const [selectedSeason, setSelectedSeason] = useState<number | null>(null);
   const [isInList, setIsInList] = useState(false);
 
@@ -49,20 +48,10 @@ export default function SeriePage() {
         }
       } catch (error) {
         console.error('Error fetching series data:', error);
-      } finally {
-        setLoading(false);
       }
     }
     fetchData();
   }, [serieId]);
-
-  if (loading) {
-    return (
-      <div className="bg-background text-on-background min-h-screen flex items-center justify-center">
-        <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-primary"></div>
-      </div>
-    );
-  }
 
   if (!serie) {
     return (
