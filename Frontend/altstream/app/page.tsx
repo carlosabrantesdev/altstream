@@ -237,10 +237,7 @@ export default function Home() {
                     <Link key={item.id} href={`/series/${item.serie_id}`} className="relative flex-none w-32 group cursor-pointer aspect-[2/3]">
                       <div className="w-full h-full rounded-lg overflow-hidden relative border border-outline-variant/20 bg-surface-container-high transition-all duration-300 group-hover:shadow-[0_0_20px_rgba(208,188,255,0.15)] group-hover:border-primary/30">
                         <img alt={item.serie_nome} className="w-full h-full object-cover" src={item.serie_imagem || 'https://wallpaperaccess.com/full/3215377.jpg'} />
-                        <div className="absolute inset-0 bg-surface-container/60 backdrop-blur-sm opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex items-center justify-center">
-                          <button className="bg-primary/20 backdrop-blur-md text-primary rounded-full aspect-square w-10 h-10 flex items-center justify-center border border-primary/50 shadow-[0_0_15px_rgba(208,188,255,0.5)]">
-                            <span className="material-symbols-outlined" style={{ fontVariationSettings: "'FILL' 1" }}>play_arrow</span>
-                          </button>
+                        <div className="absolute inset-0 bg-surface-container/60 backdrop-blur-sm opacity-0 flex items-center justify-center">
                         </div>
                       </div>
                       <div className="mt-2 flex flex-col">
@@ -261,7 +258,7 @@ export default function Home() {
               {/* Genre Filters */}
               <div className="flex gap-2 overflow-x-auto no-scrollbar">
                 <button className="whitespace-nowrap px-4 py-1.5 rounded-full bg-primary-container text-on-primary-container font-label-sm text-label-sm transition-all shadow-[0_0_10px_rgba(208,188,255,0.2)]">Todos</button>
-                <button className="whitespace-nowrap px-4 py-1.5 rounded-full bg-surface-container border border-outline-variant/30 text-on-surface-variant font-label-sm text-label-sm hover:border-primary/50 hover:text-primary transition-all">Ficção Científica</button>
+                <button className="whitespace-nowrap px-4 py-1.5 rounded-full bg-surface-container border border-outline-variant/30 text-on-surface-variant font-label-sm text-label-sm hover:border-primary/50 hover:text-primary transition-all">Comédia</button>
                 <button className="whitespace-nowrap px-4 py-1.5 rounded-full bg-surface-container border border-outline-variant/30 text-on-surface-variant font-label-sm text-label-sm hover:border-primary/50 hover:text-primary transition-all">Ação</button>
                 <button className="whitespace-nowrap px-4 py-1.5 rounded-full bg-surface-container border border-outline-variant/30 text-on-surface-variant font-label-sm text-label-sm hover:border-primary/50 hover:text-primary transition-all">Drama</button>
                 <button className="whitespace-nowrap px-4 py-1.5 rounded-full bg-surface-container border border-outline-variant/30 text-on-surface-variant font-label-sm text-label-sm hover:border-primary/50 hover:text-primary transition-all">Documentário</button>

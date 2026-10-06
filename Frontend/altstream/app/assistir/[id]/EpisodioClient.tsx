@@ -43,7 +43,6 @@ export default function EpisodioPage() {
           
           if (data.serie) {
             const todosEpisodios = await streamApi.getEpisodiosBySerie(data.serie.id);
-            // Filtrar o episódio atual e pegar os próximos 3
             const currentIndex = todosEpisodios.findIndex((e: any) => e.id === Number(episodioId));
             const nextEpisodes = todosEpisodios.slice(currentIndex + 1, currentIndex + 4);
             setRecomendados(nextEpisodes);
@@ -153,7 +152,12 @@ export default function EpisodioPage() {
                   <div className="flex flex-col">
                     <span className="font-label-sm text-label-sm text-primary uppercase tracking-wider">Série</span>
                     <span className="font-body-md text-body-md text-on-surface-variant font-medium">
-                      {episodio.serie?.nome || 'Série Desconhecida'}
+                      <Link 
+                        href={`/series/${episodio.serie?.id}`} 
+                        className="text-on-background hover:underline font-label-sm text-label-sm"
+                      >
+                        {episodio.serie?.nome || 'Série Desconhecida'}
+                      </Link>
                     </span>
                   </div>
                 </div>
@@ -178,16 +182,17 @@ export default function EpisodioPage() {
                   <button onClick={handleShare} className="flex items-center gap-2 p-2 rounded-full bg-surface-container border border-outline-variant/30 hover:border-primary/50 hover:bg-surface-variant/50 transition-all text-on-surface-variant hover:text-primary ml-2">
                     <span className="material-symbols-outlined">share</span>
                   </button>
-                </div>
-                <div className="flex justify-end">
                   {recomendados.length > 0 && (
                     <Link 
                       href={`/assistir/${recomendados[0].id}`}
-                      className="flex items-center justify-center gap-2 px-6 py-3 rounded-full bg-primary text-on-primary font-label-sm text-label-sm hover:bg-primary-fixed transition-all shadow-[0_0_15px_rgba(208,188,255,0.3)] w-full sm:w-max"
+                      className="flex items-center justify-center gap-2 px-6 py-2 rounded-full bg-primary text-on-primary font-label-sm text-label-sm transition-all] w-full sm:w-max ml-2"
                     >
-                      Próximo Episódio <span className="material-symbols-outlined text-sm">skip_next</span>
+                      Próximo <span className="material-symbols-outlined text-sm">skip_next</span>
                     </Link>
                   )}
+                </div>
+                <div className="flex justify-end">
+                  {/* Botão de próximo episódio movido para a linha de cima */}
                 </div>
               </div>
             </div>

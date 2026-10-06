@@ -59,7 +59,7 @@ export default function AIPopUp() {
         onClick={() => setIsOpen(true)}
         className="fixed bottom-6 right-6 w-14 h-14 text-on-primary rounded-full shadow-2xl flex items-center justify-center transition-all duration-300 z-50 group overflow-hidden"
       >
-        <img src="./AIPopup.png" alt="AI Assistant" className="w-full h-full object-cover transition-transform duration-300" />
+        <img src="/AIPopup.png" className="w-full h-full object-cover transition-transform duration-300" />
         <span className="absolute right-16 bg-surface-container text-on-surface text-xs py-1 px-2 rounded opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap pointer-events-none border border-outline-variant/30">
           Pergunte à IA
         </span>

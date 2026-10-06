@@ -15,7 +15,6 @@ export default function AdminPage() {
   const [loading, setLoading] = useState(true);
   const [isAdmin, setIsAdmin] = useState(false);
 
-  // Form States - Series
   const [serieForm, setSerieForm] = useState({
     nome: '',
     generos: '',
@@ -26,7 +25,6 @@ export default function AdminPage() {
     destaque_landing_page: false,
   });
 
-  // Form States - Episode
   const [episodioForm, setEpisodioForm] = useState({
     nome: '',
     descricao: '',
@@ -46,7 +44,6 @@ export default function AdminPage() {
             setIsAdmin(true);
             fetchSeries();
           } else {
-            console.log("Usuário não é admin:", tokenResult.claims);
             router.push('/login');
           }
         } catch (error) {

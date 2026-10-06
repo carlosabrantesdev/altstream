@@ -20,7 +20,7 @@ export async function generateMetadata(
 
     if (!response.ok) {
       return {
-        title: 'Série | AltStream',
+        title: 'Série - AltStream',
         description: 'Assista séries no AltStream.',
       };
     }
@@ -38,7 +38,7 @@ export async function generateMetadata(
       `https://carlosabrantes.dengoso.web.ufersa.dev.br/series/${id}`;
 
     return {
-      title: `${nome} | AltStream`,
+      title: `${nome} - AltStream`,
       description: descricao,
 
       openGraph: {
