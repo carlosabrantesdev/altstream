@@ -59,7 +59,7 @@ export default function LoginPage() {
                 className="mt-1 w-4 h-4 accent-primary cursor-pointer" 
                 required 
               />
-              <label htmlFor="terms" className="text-xs text-on-surface-variant leading-relaxed cursor-pointer">
+              <label htmlFor="terms" className="font-label-sm text-xs text-on-surface-variant leading-relaxed cursor-pointer">
                 Ao entrar ou se cadastrar, eu concordo com os <Link href="/termos" className="text-primary hover:underline">Termos de Uso</Link> e a <Link href="/privacidade" className="text-primary hover:underline">Política de Privacidade</Link> do AltStream.
               </label>
             </div>
