@@ -63,12 +63,12 @@ altstream/
    ```
 
 ## Funcionalidades
-- [ ] Cadastro e Login de usuários.
-- [ ] Listagem de séries e episódios.
-- [ ] Player de vídeo integrado.
-- [ ] Sistema de curtidas/descurtidas em episódios.
-- [ ] Busca de conteúdos.
-- [ ] Painel administrativo para gestão de séries.
+- Cadastro e Login de usuários.
+- Listagem de séries e episódios.
+- Player de vídeo integrado.
+- Sistema de curtidas/descurtidas em episódios.
+- Busca de conteúdos.
+- Painel administrativo para gestão de séries.
 
 ---
 Desenvolvido por Carlos Abrantes
