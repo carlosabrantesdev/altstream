@@ -21,6 +21,7 @@ export const firebaseAuth = {
     try {
       const result = await signInWithPopup(auth, googleProvider);
       const token = await result.user.getIdToken();
+      localStorage.setItem("jwt_token", token);
       console.log("JWT:", token);
       return result.user;
     } catch (error) {
