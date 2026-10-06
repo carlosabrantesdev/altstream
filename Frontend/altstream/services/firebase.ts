@@ -20,6 +20,8 @@ export const firebaseAuth = {
   signInWithGoogle: async () => {
     try {
       const result = await signInWithPopup(auth, googleProvider);
+      const token = await result.user.getIdToken();
+      console.log("JWT:", token);
       return result.user;
     } catch (error) {
       console.error("Erro ao fazer login com Google:", error);
