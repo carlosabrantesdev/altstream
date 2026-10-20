@@ -14,8 +14,7 @@ export default function AdminPage() {
   const [series, setSeries] = useState<any[]>([]);
   const [selectedSerieId, setSelectedSerieId] = useState<string>('');
   const [loading, setLoading] = useState(true);
-  const [authorizedUserId, setAuthorizedUserId] = useState<string | null>(null);
-  const isAdmin = !!user && authorizedUserId === user.id;
+  const isAdmin = !!user;
 
   const [serieForm, setSerieForm] = useState({
     nome: '',
@@ -40,25 +39,27 @@ export default function AdminPage() {
     if (authLoading) return;
     let active = true;
     async function checkAccess() {
-      if (user) {
-        try {
-          const token = await getIdToken();
-          const { isAdmin } = await streamApi.checkAdmin(token);
-          if (!active) return;
-          if (isAdmin) {
-            setAuthorizedUserId(user.id);
-            const data = await streamApi.getSeries();
-            if (active) setSeries(data);
-          } else {
-            router.replace('/');
-          }
-        } catch (error) {
-          if (active) router.replace('/login');
-        } finally {
-          if (active) setLoading(false);
-        }
-      } else {
+      if (!user) {
         router.replace('/login');
+        return;
+      }
+
+      try {
+        const token = await getIdToken();
+        const response = await streamApi.checkAdmin(token);
+
+        if (!active) return;
+
+        if (response && response.isAdmin === true) {
+          const data = await streamApi.getSeries();
+          if (active) setSeries(data);
+        } else {
+          router.replace('/');
+        }
+      } catch (error) {
+        if (active) router.replace('/login');
+      } finally {
+        if (active) setLoading(false);
       }
     }
     void checkAccess();

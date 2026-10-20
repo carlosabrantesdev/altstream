@@ -82,26 +82,26 @@ export const streamApi = {
     return response.data;
   },
 
-async createSerie(data: any, token: string) {
-  const response = await api.post('/core/series/', data, {
-    headers: { Authorization: `Bearer ${token}` },
-  });
-  return response.data;
-},
+  async createSerie(data: any, token: string) {
+    const response = await api.post('/core/series/', data, {
+      headers: { Authorization: `Bearer ${token}` },
+    });
+    return response.data;
+  },
 
-async deleteSerie(id: number, token: string) {
-  const response = await api.delete(`/core/series/${id}/`, {
-    headers: { Authorization: `Bearer ${token}` },
-  });
-  return response.data;
-},
+  async deleteSerie(id: number, token: string) {
+    const response = await api.delete(`/core/series/${id}/`, {
+      headers: { Authorization: `Bearer ${token}` },
+    });
+    return response.data;
+  },
 
-async createEpisodio(serieId: number, data: any, token: string) {
-  const response = await api.post(`/core/series/${serieId}/episodios/create/`, data, {
-    headers: { Authorization: `Bearer ${token}` },
-  });
-  return response.data;
-},
+  async createEpisodio(serieId: number, data: any, token: string) {
+    const response = await api.post(`/core/series/${serieId}/episodios/create/`, data, {
+      headers: { Authorization: `Bearer ${token}` },
+    });
+    return response.data;
+  },
 
   async getMinhaLista(token: string) {
     const response = await api.get('/core/lista/', {
