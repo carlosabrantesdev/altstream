@@ -62,6 +62,9 @@ altstream/
    npm run dev
    ```
 
+Para configurar o login Cognito/Google e o chat via API Gateway WebSocket,
+consulte [o guia do frontend](Frontend/altstream/README.md).
+
 ## Funcionalidades
 - Cadastro e Login de usuários.
 - Listagem de séries e episódios.

@@ -14,5 +14,4 @@ urlpatterns = [
     path('pesquisar/', views.PesquisarSeriesView.as_view(), name='pesquisar_series'),
     path('episodios/<int:pk>/like/', views.ToggleLikeView.as_view(), name='toggle_like'),
     path('lista/', views.MinhaListaView.as_view(), name='minha_lista'),
-    path('ai/chat/', views.AIChatView.as_view(), name='ai_chat'),
 ]

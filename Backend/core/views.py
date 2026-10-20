@@ -1,30 +1,34 @@
 from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework.permissions import IsAuthenticated
-import google.generativeai as genai
 import os
 from .models import Serie, Episodio, UsuarioEpisodios, MinhaLista, AvaliacaoEpisodio
 from .serializers import SerieSerializer, EpisodioSerializer, EpisodioPostSerializer
 from drf_yasg.utils import swagger_auto_schema
-from .auth import FirebaseAuthentication, IsFirebaseAdmin
+from .auth import CognitoAuthentication, IsCognitoAdmin
 
 class CheckAdminView(APIView):
-    authentication_classes = [FirebaseAuthentication]
+    authentication_classes = [CognitoAuthentication]
     permission_classes = []
 
     def get(self, request):
-        is_admin = getattr(request.auth, 'is_firebase_admin', False)
+        auth_data = getattr(request, 'auth', {})
+        is_admin = False
+        
+        if isinstance(auth_data, dict):
+            is_admin = auth_data.get('is_cognito_admin', False)
+        
         return Response({"isAdmin": is_admin})
 
 class HomeView(APIView):
-    authentication_classes = [FirebaseAuthentication]
+    authentication_classes = [CognitoAuthentication]
     permission_classes = []
 
     def get(self, request):
         return Response({"message": f"Bem-vindo ao AltStream API, {request.user.nome}!"})
 
 class ListarSeriesView(APIView):
-    authentication_classes = [FirebaseAuthentication]
+    authentication_classes = [CognitoAuthentication]
     permission_classes = []
 
     def get(self, request):
@@ -33,7 +37,7 @@ class ListarSeriesView(APIView):
         return Response(serializer.data)
 
     def post(self, request):
-        if not IsFirebaseAdmin().has_permission(request, self):
+        if not IsCognitoAdmin().has_permission(request, self):
             return Response({'detail': 'You do not have permission to perform this action.'}, status=403)
 
         serializer = SerieSerializer(data=request.data)
@@ -43,7 +47,7 @@ class ListarSeriesView(APIView):
         return Response(serializer.errors, status=400)
 
 class DetalheSerieView(APIView):
-    authentication_classes = [FirebaseAuthentication]
+    authentication_classes = [CognitoAuthentication]
     permission_classes = []
 
     def get(self, request, pk):
@@ -56,7 +60,7 @@ class DetalheSerieView(APIView):
 
     @swagger_auto_schema(request_body=SerieSerializer)
     def post(self, request, pk=None):
-        if not IsFirebaseAdmin().has_permission(request, self):
+        if not IsCognitoAdmin().has_permission(request, self):
             return Response({'detail': 'You do not have permission to perform this action.'}, status=403)
             
         try:
@@ -71,7 +75,7 @@ class DetalheSerieView(APIView):
         return Response(serializer.errors, status=400)
 
     def delete(self, request, pk):
-        if not IsFirebaseAdmin().has_permission(request, self):
+        if not IsCognitoAdmin().has_permission(request, self):
             return Response({'detail': 'You do not have permission to perform this action.'}, status=403)
             
         try:
@@ -81,53 +85,8 @@ class DetalheSerieView(APIView):
         except Serie.DoesNotExist:
             return Response({'error': 'Série não encontrada'}, status=404)
 
-class AIChatView(APIView):
-    authentication_classes = [FirebaseAuthentication]
-    permission_classes = []
-
-    def post(self, request):
-        try:
-            message = request.data.get('message')
-            history = request.data.get('history', [])
-
-            if not message:
-                return Response({'error': 'A mensagem é obrigatória.'}, status=400)
-
-            series_do_banco = Serie.objects.prefetch_related('episodios').all()
-            
-            catalogo_texto = "Catálogo de séries e episódios disponíveis no AltStream:\n"
-            for serie in series_do_banco:
-                generos_nomes = ", ".join([g.nome for g in serie.generos.all()])
-                catalogo_texto += f"- Série: {serie.nome} (Gêneros: {generos_nomes if generos_nomes else 'N/A'})\n"
-                episodios = serie.episodios.all()[:5]
-                for ep in episodios:
-                    catalogo_texto += f"  * Ep {ep.numero}: {ep.nome} (Temporada {getattr(ep, 'temporada_numero', 1)})\n"
-
-            genai.configure(api_key=os.getenv('GEMINI_API_KEY'))
-            
-            system_instruction = f"""
-            Você é o assistente virtual do AltStream. Seja amigável, conciso e ajude o usuário a encontrar séries, filmes e recomendações baseadas nos gostos dele. Não use asteristico.
-            
-            Use EXCLUSIVAMENTE as informações do catálogo abaixo para responder perguntas sobre quais séries estão disponíveis na plataforma:
-            {catalogo_texto}
-            
-            """
-
-            model = genai.GenerativeModel(
-                model_name='gemini-2.5-flash',
-                system_instruction=system_instruction
-            )
-            
-            chat = model.start_chat(history=[])
-            response = chat.send_message(message)
-            return Response({'reply': response.text})
-
-        except Exception as e:
-            print(f"Erro na API do Gemini: {str(e)}")
-            return Response({'error': 'Não foi possível gerar a resposta no momento.'}, status=500)
-
 class MinhaListaView(APIView):
-    authentication_classes = [FirebaseAuthentication]
+    authentication_classes = [CognitoAuthentication]
     permission_classes = []
 
     def get(self, request):
@@ -172,20 +131,6 @@ class MinhaListaView(APIView):
             return Response({'error': 'Série não encontrada'}, status=404)
 
 
-            chat_history = [
-                {'role': 'model' if msg.get('role') == 'ai' else 'user', 'parts': [msg.get('content')]}
-                for msg in history
-            ]
-
-            chat = model.start_chat(history=chat_history)
-            response = chat.send_message(message)
-
-            return Response({'reply': response.text})
-
-        except Exception as e:
-            print(f"Erro na API do Gemini: {str(e)}")
-            return Response({'error': 'Não foi possível gerar a resposta no momento.'}, status=500)
-        
 class ListarEpisodiosView(APIView):
     def get(self, request, serie_id):
         episodios = Episodio.objects.filter(serie_id=serie_id)
@@ -193,7 +138,7 @@ class ListarEpisodiosView(APIView):
         return Response(serializer.data)
 
 class DetalheEpisodioView(APIView):
-    authentication_classes = [FirebaseAuthentication]
+    authentication_classes = [CognitoAuthentication]
     permission_classes = []
 
     def get(self, request, pk):
@@ -209,7 +154,7 @@ class DetalheEpisodioView(APIView):
         request_body=EpisodioPostSerializer
     )
     def post(self, request, pk=None, serie_id=None):
-        if not IsFirebaseAdmin().has_permission(request, self):
+        if not IsCognitoAdmin().has_permission(request, self):
             return Response({'detail': 'Apenas administradores podem criar episódios.'}, status=403)
             
         s_id = serie_id if serie_id is not None else pk
@@ -222,7 +167,7 @@ class DetalheEpisodioView(APIView):
         return Response(serializer.errors, status=400)
 
     def delete(self, request, pk):
-        if not IsFirebaseAdmin().has_permission(request, self):
+        if not IsCognitoAdmin().has_permission(request, self):
             return Response({'detail': 'Apenas administradores podem deletar episódios.'}, status=403)
             
         try:
@@ -233,7 +178,7 @@ class DetalheEpisodioView(APIView):
             return Response({'error': 'Episódio não encontrado'}, status=404)
 
 class ListarContinuarView(APIView):
-    authentication_classes = [FirebaseAuthentication]
+    authentication_classes = [CognitoAuthentication]
     permission_classes = []
 
     def get(self, request):
@@ -284,7 +229,7 @@ class PesquisarSeriesView(APIView):
 
 
 class ToggleLikeView(APIView):
-    authentication_classes = [FirebaseAuthentication]
+    authentication_classes = [CognitoAuthentication]
     permission_classes = []
 
     def post(self, request, pk):
@@ -294,7 +239,6 @@ class ToggleLikeView(APIView):
 
         try:
             episodio = Episodio.objects.get(pk=pk)
-            action_is_like = request.data.get('like', True)
 
             avaliacao, created = AvaliacaoEpisodio.objects.get_or_create(
                 usuario=usuario, 
