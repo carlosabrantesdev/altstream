@@ -12,7 +12,6 @@
   "dependencies": {
     "@emotion/react": "^11.14.0",
     "@emotion/styled": "^11.14.1",
-    "@google/genai": "^2.21.0",
     "@mui/icons-material": "^9.3.1",
     "@mui/material": "^9.3.1",
     "aws-amplify": "^6.22.2",
@@ -31,7 +30,7 @@
     "@types/react": "^19",
     "@types/react-dom": "^19",
     "@types/video.js": "^7.3.58",
-    "eslint": "^9",
+    "eslint": "^8.57.0",
     "eslint-config-next": "^14.2.35",
     "tailwindcss": "^4",
     "typescript": "^5"
