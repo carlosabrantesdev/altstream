@@ -5,28 +5,34 @@ import Header from './components/Header';
 import Footer from './components/Footer';
 import { streamApi } from '@/services/api';
 import Link from 'next/link';
-import { auth } from '@/services/firebase';
+import { getIdToken } from '@/services/auth';
+import { useAuth } from './components/AuthProvider';
 import { useRouter } from "next/navigation";
 
 export default function Home() {
+  const { user } = useAuth();
+  return <HomeContent key={user?.id || 'guest'} />;
+}
+
+function HomeContent() {
   const router = useRouter();
+  const { user, loading: authLoading } = useAuth();
   const [continuar, setContinuar] = useState<any[]>([]);
   const [novos, setNovos] = useState<any[]>([]);
   const [seriesDestaque, setSeriesDestaque] = useState<any[]>([]);
   const [series, setSeries] = useState<any[]>([]);
   const [minhaLista, setMinhaLista] = useState<any[]>([]);
-  const [isLoggedIn, setIsLoggedIn] = useState(false);
+  const isLoggedIn = !!user;
   const [currentBannerIndex, setCurrentBannerIndex] = useState(0);
 
   const handleToggleList = async (serieId: number) => {
     try {
-      const user = auth.currentUser;
       if (!user) {
         router.push('/login');
         return;
       }
 
-      const token = await user.getIdToken();
+      const token = await getIdToken();
       await streamApi.toggleMinhaLista(serieId, token);
 
       const updatedLista = await streamApi.getMinhaLista(token);
@@ -37,9 +43,10 @@ export default function Home() {
   };
 
   useEffect(() => {
-    const unsubscribe = auth.onAuthStateChanged(async (user) => {
+    if (authLoading) return;
+    let active = true;
+    async function fetchHome() {
       const logged = !!user;
-      setIsLoggedIn(logged);
 
       try {
         const [novosData, seriesData] = await Promise.all([
@@ -47,17 +54,19 @@ export default function Home() {
           streamApi.getSeries()
         ]);
 
+        if (!active) return;
         setNovos(novosData || []);
         setSeries(seriesData || []);
         setSeriesDestaque((seriesData || []).filter((s: any) => s.destaque_landing_page));
 
         if (logged && user) {
-          const token = await user.getIdToken();
+          const token = await getIdToken();
           const [listaData, continuarData] = await Promise.all([
             streamApi.getMinhaLista(token),
             streamApi.getContinueWatching(token)
           ]);
 
+          if (!active) return;
           setMinhaLista(listaData || []);
           setContinuar(continuarData || []);
         } else {
@@ -67,10 +76,10 @@ export default function Home() {
       } catch (error) {
         console.error('Error fetching home data:', error);
       }
-    });
-
-    return () => unsubscribe();
-  }, []);
+    }
+    void fetchHome();
+    return () => { active = false; };
+  }, [user, authLoading]);
 
   useEffect(() => {
     if (seriesDestaque.length > 1) {
@@ -296,4 +305,4 @@ export default function Home() {
       </main>
     </div>
   );
-} 
+}

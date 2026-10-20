@@ -8,11 +8,13 @@ import { DiscussionEmbed } from 'disqus-react';
 import { streamApi } from '@/services/api';
 import { useParams, useRouter } from 'next/navigation';
 import Link from 'next/link';
-import { auth } from '@/services/firebase';
+import { getIdToken } from '@/services/auth';
+import { useAuth } from '@/app/components/AuthProvider';
 import PopUp from '@/app/components/PopUp';
 
 export default function EpisodioPage() {
   const router = useRouter();
+  const { user } = useAuth();
   const params = useParams();
   const episodioId = params.id;
 
@@ -20,19 +22,11 @@ export default function EpisodioPage() {
   const [curtidas, setCurtidas] = useState<number>(0);
   const [descurtidas, setDescurtidas] = useState<number>(0);
   const [recomendados, setRecomendados] = useState<any[]>([]);
-  const [user, setUser] = useState<any>(null);
   const [popupMessage, setPopupMessage] = useState<string | null>(null);
   const [popupType, setPopupType] = useState<'success' | 'error' | 'info'>('info');
   const [savedTime, setSavedTime] = useState<number>(0);
   const lastSavedTime = useRef(0);
   const isSaving = useRef(false);
-
-  useEffect(() => {
-    const unsubscribe = auth.onAuthStateChanged((currentUser) => {
-      setUser(currentUser);
-    });
-    return () => unsubscribe();
-  }, []);
 
   useEffect(() => {
     async function fetchEpisodio() {
@@ -62,7 +56,7 @@ export default function EpisodioPage() {
     async function resumePlayback() {
       if (!user || !episodioId) return;
       try {
-        const token = await user.getIdToken();
+        const token = await getIdToken();
         const progressList = await streamApi.getContinueWatching(token);
         const progress = progressList.find((p: any) => p.episodio__id === Number(episodioId));
 
@@ -90,7 +84,7 @@ export default function EpisodioPage() {
 
     try {
       isSaving.current = true;
-      const token = await user.getIdToken();
+      const token = await getIdToken();
       const tempo = Math.floor(time);
 
       await streamApi.saveVideoProgress(
@@ -101,6 +95,8 @@ export default function EpisodioPage() {
 
       lastSavedTime.current = time;
 
+    } catch {
+      // Falhas de sessão ou da API não devem interromper a reprodução.
     } finally {
       isSaving.current = false;
     }
@@ -149,7 +145,7 @@ export default function EpisodioPage() {
     }
 
     try {
-      const token = await user.getIdToken();
+      const token = await getIdToken();
       const response = await streamApi.toggleLike(Number(episodioId), isLike, token);
 
       setCurtidas(response.curtidas);

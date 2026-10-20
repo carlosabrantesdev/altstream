@@ -19,7 +19,7 @@ export const streamApi = {
         },
       });
       return response.data;
-    } catch (error: any) {
+    } catch (error) {
       console.error('Erro ao checar admin:', error);
       return { isAdmin: false };
     }
@@ -102,11 +102,6 @@ async createEpisodio(serieId: number, data: any, token: string) {
   });
   return response.data;
 },
-
-  async chatAI(message: string, history: any[]) {
-    const response = await api.post('/core/ai/chat/', { message, history });
-    return response.data;
-  },
 
   async getMinhaLista(token: string) {
     const response = await api.get('/core/lista/', {

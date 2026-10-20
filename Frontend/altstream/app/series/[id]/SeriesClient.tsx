@@ -6,11 +6,18 @@ import Footer from '@/app/components/Footer';
 import { streamApi } from '@/services/api';
 import { useParams } from 'next/navigation';
 import Link from 'next/link';
-import { auth } from '@/services/firebase';
+import { getIdToken } from '@/services/auth';
+import { useAuth } from '@/app/components/AuthProvider';
 import { useRouter } from "next/navigation";
 
 export default function SeriePage() {
+  const { user } = useAuth();
+  return <SerieContent key={user?.id || 'guest'} />;
+}
+
+function SerieContent() {
   const router = useRouter();
+  const { user } = useAuth();
   const params = useParams();
   const serieId = params.id;
 
@@ -30,17 +37,6 @@ export default function SeriePage() {
           setSerie(serieData);
           setEpisodios(episodiosData);
           
-          try {
-            const user = auth.currentUser;
-            if (user) {
-              const token = await user.getIdToken();
-              const lista = await streamApi.getMinhaLista(token);
-              setIsInList(lista.some((item: any) => item.serie_id === Number(serieId)));
-            }
-          } catch (e) {
-            console.error('Error checking list:', e);
-          }
-          
           const hasSeason1 = episodiosData.some((ep: any) => ep.temporada_numero === 1);
           if (hasSeason1) {
             setSelectedSeason(1);
@@ -53,6 +49,19 @@ export default function SeriePage() {
     fetchData();
   }, [serieId]);
 
+  useEffect(() => {
+    let active = true;
+    if (user && serieId) {
+      getIdToken()
+        .then(token => streamApi.getMinhaLista(token))
+        .then(lista => {
+          if (active) setIsInList(lista.some((item: { serie_id: number }) => item.serie_id === Number(serieId)));
+        })
+        .catch(() => { if (active) setIsInList(false); });
+    }
+    return () => { active = false; };
+  }, [user, serieId]);
+
   if (!serie) {
     return (
       <div className="bg-background text-on-background min-h-screen flex items-center justify-center">
@@ -63,14 +72,13 @@ export default function SeriePage() {
 
   const handleToggleList = async () => {
     try {
-      const user = auth.currentUser;
       if (!user) {
         router.push('/login');
         return;
       }
   
-      const token = await user.getIdToken();
-      const result = await streamApi.toggleMinhaLista(Number(serieId), token);
+      const token = await getIdToken();
+      await streamApi.toggleMinhaLista(Number(serieId), token);
       setIsInList(!isInList);
     } catch (error) {
       console.error('Error toggling list:', error);

@@ -1,23 +1,17 @@
-import React, { useState, useEffect } from 'react';
+'use client';
+
+import React from 'react';
 import Link from 'next/link';
 import SearchBar from './SearchBar';
-import { auth } from '@/services/firebase';
-import { onAuthStateChanged, signOut, User } from 'firebase/auth';
+import { logout } from '@/services/auth';
+import { useAuth } from './AuthProvider';
 
 export default function Header() {
-  const [user, setUser] = useState<User | null>(null);
-
-  useEffect(() => {
-    const unsubscribe = onAuthStateChanged(auth, (currentUser) => {
-      setUser(currentUser);
-    });
-    return () => unsubscribe();
-  }, []);
+  const { user, loading } = useAuth();
 
   const handleLogout = async () => {
     try {
-      await signOut(auth);
-      console.log('Usuário deslogado com sucesso');
+      await logout();
     } catch (error) {
       console.error('Erro ao fazer logout:', error);
     }
@@ -55,14 +49,14 @@ export default function Header() {
               />
             </div>
           </div>
-        ) : (
+        ) : !loading ? (
           <Link 
             href="/login" 
             className="bg-primary hover:bg-primary-fixed text-on-primary font-label-sm text-label-sm px-5 py-2 rounded-full transition-all duration-300 hover:scale-105 shadow-lg"
           >
             Fazer Login
           </Link>
-        )}
+        ) : null}
       </div>
     </header>
   );

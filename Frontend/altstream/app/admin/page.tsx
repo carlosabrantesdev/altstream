@@ -4,16 +4,18 @@ import { useState, useEffect } from 'react';
 import { streamApi } from '@/services/api';
 import Header from '../components/Header';
 import Footer from '../components/Footer';
-import { auth } from '@/services/firebase';
-import { onAuthStateChanged } from 'firebase/auth';
+import { getIdToken } from '@/services/auth';
+import { useAuth } from '../components/AuthProvider';
 import { useRouter } from 'next/navigation';
 
 export default function AdminPage() {
   const router = useRouter();
+  const { user, loading: authLoading } = useAuth();
   const [series, setSeries] = useState<any[]>([]);
   const [selectedSerieId, setSelectedSerieId] = useState<string>('');
   const [loading, setLoading] = useState(true);
-  const [isAdmin, setIsAdmin] = useState(false);
+  const [authorizedUserId, setAuthorizedUserId] = useState<string | null>(null);
+  const isAdmin = !!user && authorizedUserId === user.id;
 
   const [serieForm, setSerieForm] = useState({
     nome: '',
@@ -35,27 +37,33 @@ export default function AdminPage() {
   });
 
   useEffect(() => {
-    const unsubscribe = onAuthStateChanged(auth, async (user) => {
+    if (authLoading) return;
+    let active = true;
+    async function checkAccess() {
       if (user) {
         try {
-          const tokenResult = await user.getIdTokenResult(true);
-          
-          if (tokenResult.claims.admin) {
-            setIsAdmin(true);
-            fetchSeries();
+          const token = await getIdToken();
+          const { isAdmin } = await streamApi.checkAdmin(token);
+          if (!active) return;
+          if (isAdmin) {
+            setAuthorizedUserId(user.id);
+            const data = await streamApi.getSeries();
+            if (active) setSeries(data);
           } else {
-            router.push('/login');
+            router.replace('/');
           }
         } catch (error) {
-          console.error('Erro ao decodificar token:', error);
-          router.push('/login');
+          if (active) router.replace('/login');
+        } finally {
+          if (active) setLoading(false);
         }
       } else {
-        router.push('/login');
+        router.replace('/login');
       }
-    });
-    return () => unsubscribe();
-  }, [router]);
+    }
+    void checkAccess();
+    return () => { active = false; };
+  }, [router, user, authLoading]);
 
   async function fetchSeries() {
     try {
@@ -71,7 +79,7 @@ export default function AdminPage() {
   const handleAddSerie = async (e: React.FormEvent) => {
     e.preventDefault();
     try {
-      const token = await auth.currentUser?.getIdToken();
+      const token = await getIdToken();
       if (!token) throw new Error('Usuário não autenticado');
       
       await streamApi.createSerie(serieForm, token);
@@ -86,7 +94,7 @@ export default function AdminPage() {
   const handleDeleteSerie = async (id: number) => {
     if (confirm('Tem certeza que deseja deletar esta série e todos os seus episódios?')) {
       try {
-        const token = await auth.currentUser?.getIdToken();
+        const token = await getIdToken();
         if (!token) throw new Error('Usuário não autenticado');
 
         await streamApi.deleteSerie(id, token);
@@ -102,7 +110,7 @@ export default function AdminPage() {
     e.preventDefault();
     if (!selectedSerieId) return alert('Selecione uma série primeiro!');
     try {
-      const token = await auth.currentUser?.getIdToken();
+      const token = await getIdToken();
       if (!token) throw new Error('Usuário não autenticado');
 
       await streamApi.createEpisodio(Number(selectedSerieId), episodioForm, token);
@@ -113,7 +121,7 @@ export default function AdminPage() {
     }
   };
 
-  if (loading) {
+  if (loading || authLoading || !user || !isAdmin) {
     return (
       <div className="bg-background text-on-background min-h-screen flex items-center justify-center">
         <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-primary"></div>

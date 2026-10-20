@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { Inter } from "next/font/google";
 import "./globals.css";
 import AIPopUp from "./components/AIPopUp";
+import AuthProvider from "./components/AuthProvider";
 
 const inter = Inter({
   subsets: ["latin"],
@@ -27,8 +28,10 @@ export default function RootLayout({
         />
       </head>
       <body className={`antialiased ${inter.className}`}>
-        {children}
-        <AIPopUp />
+        <AuthProvider>
+          {children}
+          <AIPopUp />
+        </AuthProvider>
       </body>
     </html>
   );
