@@ -62,7 +62,7 @@ altstream/
    npm run dev
    ```
 
-Para configurar o login Cognito/Google e o chat via API Gateway WebSocket,
+Para configurar o login Cognito/Google, o chat e o perfil com S3/DynamoDB,
 consulte [o guia do frontend](Frontend/altstream/README.md).
 
 ## Funcionalidades
@@ -72,6 +72,7 @@ consulte [o guia do frontend](Frontend/altstream/README.md).
 - Sistema de curtidas/descurtidas em episódios.
 - Busca de conteúdos.
 - Painel administrativo para gestão de séries.
+- Edição de nome, e-mail e foto de perfil, com persistência no DynamoDB e S3.
 
 ---
 Desenvolvido por Carlos Abrantes
