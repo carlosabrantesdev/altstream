@@ -1,20 +1,7 @@
-import os
-from dotenv import load_dotenv
 import jwt
-from django.conf import settings
-from rest_framework import status
-from rest_framework.response import Response
 from rest_framework.permissions import BasePermission
 from rest_framework.authentication import BaseAuthentication
 from .models import Usuario
-
-load_dotenv()
-
-REGION = os.environ.get("AWS_REGION", "us-east-1")
-USER_POOL_ID = os.environ.get("AWS_USER_POOL_ID")
-APP_CLIENT_ID = os.environ.get("AWS_APP_CLIENT_ID")
-
-JWKS_URL = f"https://cognito-idp.{REGION}.amazonaws.com/{USER_POOL_ID}/.well-known/jwks.json"
 
 class CognitoAuthentication(BaseAuthentication):
     def authenticate(self, request):
@@ -54,6 +41,3 @@ class IsCognitoAdmin(BasePermission):
             return auth_data.get('is_cognito_admin', False)
         
         return False
-
-def get_cognito_user(request):
-    return getattr(request, 'user', None)

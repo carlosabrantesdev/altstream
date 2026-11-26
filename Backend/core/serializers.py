@@ -1,15 +1,10 @@
 from rest_framework import serializers
-from .models import Serie, Episodio, Temporada, Genre
+from .models import Serie, Episodio, Genre
 
 class GenreSerializer(serializers.ModelSerializer):
     class Meta:
         model = Genre
         fields = ['id', 'nome']
-
-class TemporadaSerializer(serializers.ModelSerializer):
-    class Meta:
-        model = Temporada
-        fields = '__all__'
 
 class SerieSerializer(serializers.ModelSerializer):
     data_lancamento = serializers.DateField(format="%Y-%m-%d")
