@@ -1,7 +1,6 @@
 import type { Metadata } from 'next';
+import { API_BASE_URL } from '@/services/api-url';
 import SerieClient from './SeriesClient';
-
-const API_URL = process.env.NEXT_PUBLIC_API_URL;
 
 export async function generateMetadata(
   { params }: { params: Promise<{ id: string }> }
@@ -10,7 +9,7 @@ export async function generateMetadata(
 
   try {
     const response = await fetch(
-      `${API_URL}/core/series/${id}/`,
+      `${API_BASE_URL}/core/series/${id}/`,
       {
         next: {
           revalidate: 60,
