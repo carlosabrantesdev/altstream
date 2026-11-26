@@ -31,13 +31,7 @@ CORS_ALLOW_HEADERS = [
     "ngrok-skip-browser-warning",
 ]
 
-ALLOWED_HOSTS = [
-    "localhost",
-    "127.0.0.1",
-    "32.202.196.221",
-    "shortcut-retaining-folk.ngrok-free.dev",
-    "api.carlosabrantes.dengoso.web.ufersa.dev.br"
-]
+ALLOWED_HOSTS = ['*']
 
 # Application definition
 
