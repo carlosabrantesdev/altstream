@@ -189,9 +189,6 @@ function HomeContent() {
           <section className="flex flex-col gap-stack-md">
             <div className="flex items-center justify-between">
               <h3 className="font-headline-md text-headline-md text-on-background">Novos Lançamentos</h3>
-              <button className="font-label-sm text-label-sm text-primary hover:text-primary-fixed transition-colors flex items-center gap-1">
-                Ver Tudo <span className="material-symbols-outlined text-sm">chevron_right</span>
-              </button>
             </div>
             <div className="flex gap-4 overflow-x-auto no-scrollbar pb-4 -mx-container-margin-mobile px-container-margin-mobile md:mx-0 md:px-0">
               {novos.length > 0 ? (
@@ -221,11 +218,6 @@ function HomeContent() {
           <section className="flex flex-col gap-stack-md">
             <div className="flex items-center justify-between">
               <h3 className="font-headline-md text-headline-md text-on-background">Minha Lista</h3>
-              {isLoggedIn && (
-                <button className="font-label-sm text-label-sm text-primary hover:text-primary-fixed transition-colors flex items-center gap-1">
-                  Ver Tudo <span className="material-symbols-outlined text-sm">chevron_right</span>
-                </button>
-              )}
             </div>
             <div className="flex gap-4 overflow-x-auto no-scrollbar pb-4 -mx-container-margin-mobile px-container-margin-mobile md:mx-0 md:px-0">
               {!isLoggedIn ? (
@@ -254,19 +246,12 @@ function HomeContent() {
           <section className="flex flex-col gap-stack-md">
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
               <h3 className="font-headline-md text-headline-md text-on-background">Todas as séries</h3>
-              <div className="flex gap-2 overflow-x-auto no-scrollbar">
-                <button className="whitespace-nowrap px-4 py-1.5 rounded-full bg-primary-container text-on-primary-container font-label-sm text-label-sm transition-all shadow-[0_0_10px_rgba(208,188,255,0.2)]">Todos</button>
-                <button className="whitespace-nowrap px-4 py-1.5 rounded-full bg-surface-container border border-outline-variant/30 text-on-surface-variant font-label-sm text-label-sm hover:border-primary/50 hover:text-primary transition-all">Comédia</button>
-                <button className="whitespace-nowrap px-4 py-1.5 rounded-full bg-surface-container border border-outline-variant/30 text-on-surface-variant font-label-sm text-label-sm hover:border-primary/50 hover:text-primary transition-all">Ação</button>
-                <button className="whitespace-nowrap px-4 py-1.5 rounded-full bg-surface-container border border-outline-variant/30 text-on-surface-variant font-label-sm text-label-sm hover:border-primary/50 hover:text-primary transition-all">Drama</button>
-                <button className="whitespace-nowrap px-4 py-1.5 rounded-full bg-surface-container border border-outline-variant/30 text-on-surface-variant font-label-sm text-label-sm hover:border-primary/50 hover:text-primary transition-all">Documentário</button>
-              </div>
             </div>
 
-            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6 mt-4">
+            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 2xl:grid-cols-7 gap-3 mt-4">
               {series.length > 0 ? (
                 series.map((serie: any, idx: number) => (
-                  <Link key={serie.id || `serie-${idx}`} href={`/series/${serie.id}`} className="relative group cursor-pointer w-40 md:w-48 rounded-2xl overflow-hidden border border-outline-variant/20 bg-surface-container-high transition-all duration-500 hover:scale-[1.02] hover:shadow-2xl hover:border-primary/50 aspect-[2/3]">
+                  <Link key={serie.id || `serie-${idx}`} href={`/series/${serie.id}`} className="relative group cursor-pointer w-full rounded-2xl overflow-hidden border border-outline-variant/20 bg-surface-container-high transition-all duration-500 hover:scale-[1.02] hover:shadow-2xl hover:border-primary/50 aspect-[2/3]">
                     <div className="absolute inset-0 overflow-hidden rounded-2xl">
                       <img alt={serie.nome} className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110" src={serie.link_imagem || 'https://wallpaperaccess.com/full/3215377.jpg'} />
                     </div>
