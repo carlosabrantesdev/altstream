@@ -34,7 +34,7 @@ CORS_ALLOW_HEADERS = [
 ALLOWED_HOSTS = [
     "localhost",
     "127.0.0.1",
-    "3.80.159.26",
+    "32.202.196.221",
     "shortcut-retaining-folk.ngrok-free.dev",
 ]
 
