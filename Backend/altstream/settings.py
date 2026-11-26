@@ -88,7 +88,6 @@ CORS_ALLOWED_ORIGINS = [
     "https://localhost:3000",
     "http://127.0.0.1:3000",
     "https://carlosabrantes.dengoso.web.ufersa.dev.br",
-    "3.80.159.26"
 ]
 
 DATABASES = {
